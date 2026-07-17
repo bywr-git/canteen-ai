@@ -45,3 +45,10 @@ class Purchase(Base):
         TIMESTAMP,
         server_default=text("CURRENT_TIMESTAMP")
     )
+
+class Budget(Base):
+    __tablename__ = "budgets"
+
+    budget_id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer)
+    monthly_limit = Column(Float)

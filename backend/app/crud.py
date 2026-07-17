@@ -76,3 +76,130 @@ def get_monthly_spending(db: Session):
         }
         for row in results
     ]
+
+def get_budgets(db: Session):
+    return db.query(models.Budget).all()
+
+
+def create_budget(
+    db: Session,
+    budget: schemas.BudgetCreate
+):
+    db_budget = models.Budget(
+        **budget.model_dump()
+    )
+
+    db.add(db_budget)
+    db.commit()
+    db.refresh(db_budget)
+
+    return db_budget
+
+def get_budget_summary(db: Session, user_id: int):
+
+    budget = (
+        db.query(models.Budget)
+        .filter(models.Budget.user_id == user_id)
+        .first()
+    )
+
+    if not budget:
+        return {
+            "message": "Budget not found"
+        }
+
+    total_spent = (
+        db.query(func.sum(models.Purchase.amount))
+        .filter(models.Purchase.user_id == user_id)
+        .scalar()
+    )
+
+    if total_spent is None:
+        total_spent = 0
+
+    remaining = float(budget.monthly_limit) - float(total_spent)
+
+    if remaining > 0:
+        status = "Within Budget"
+    elif remaining == 0:
+        status = "Budget Reached"
+    else:
+        status = "Over Budget"
+
+    return {
+        "user_id": user_id,
+        "monthly_budget": float(budget.monthly_limit),
+        "total_spent": float(total_spent),
+        "remaining": remaining,
+        "status": status
+    }
+
+def get_health_score(db: Session, user_id: int):
+
+    purchases = (
+        db.query(models.Purchase)
+        .filter(models.Purchase.user_id == user_id)
+        .all()
+    )
+
+    if not purchases:
+        return {
+            "message": "No purchases found."
+        }
+
+    healthy = 0
+    junk = 0
+    neutral = 0
+
+    healthy_categories = [
+        "Healthy",
+        "Fruits",
+        "Breakfast"
+    ]
+
+    junk_categories = [
+        "Snacks",
+        "Dessert"
+    ]
+
+    for purchase in purchases:
+
+        food = (
+            db.query(models.FoodItem)
+            .filter(models.FoodItem.item_id == purchase.item_id)
+            .first()
+        )
+
+        if not food:
+            continue
+
+        if food.category in healthy_categories:
+            healthy += purchase.quantity
+
+        elif food.category in junk_categories:
+            junk += purchase.quantity
+
+        else:
+            neutral += purchase.quantity
+
+    total = healthy + junk + neutral
+
+    score = round((healthy / total) * 100, 2)
+
+    if score >= 80:
+        message = "Excellent eating habits!"
+    elif score >= 60:
+        message = "Good job! Try adding more fruits and healthy meals."
+    elif score >= 40:
+        message = "Average diet. Reduce snacks and desserts."
+    else:
+        message = "Your diet needs improvement."
+
+    return {
+        "user_id": user_id,
+        "healthy_items": healthy,
+        "junk_items": junk,
+        "neutral_items": neutral,
+        "healthy_score": score,
+        "message": message
+    }
