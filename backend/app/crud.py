@@ -203,3 +203,38 @@ def get_health_score(db: Session, user_id: int):
         "healthy_score": score,
         "message": message
     }
+
+def get_top_foods(db: Session, user_id: int):
+
+    results = (
+        db.query(
+            models.FoodItem.name,
+            models.FoodItem.category,
+            func.count(models.Purchase.purchase_id).label("times_purchased")
+        )
+        .join(
+            models.Purchase,
+            models.FoodItem.item_id == models.Purchase.item_id
+        )
+        .filter(
+            models.Purchase.user_id == user_id
+        )
+        .group_by(
+            models.FoodItem.name,
+            models.FoodItem.category
+        )
+        .order_by(
+            func.count(models.Purchase.purchase_id).desc()
+        )
+        .limit(5)
+        .all()
+    )
+
+    return [
+        {
+            "food_name": row.name,
+            "category": row.category,
+            "times_purchased": row.times_purchased
+        }
+        for row in results
+    ]

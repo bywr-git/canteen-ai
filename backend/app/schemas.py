@@ -81,3 +81,8 @@ class HealthScoreResponse(BaseModel):
     neutral_items: int
     healthy_score: float
     message: str
+
+class TopFood(BaseModel):
+    food_name: str
+    category: str
+    times_purchased: int

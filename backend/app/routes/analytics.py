@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
 from app import crud, schemas
+from typing import List
 
 router = APIRouter(
     prefix="/analytics",
@@ -42,3 +43,14 @@ def health_score(
     db: Session = Depends(get_db)
 ):
     return crud.get_health_score(db, user_id)
+
+
+@router.get(
+    "/top-foods/{user_id}",
+    response_model=List[schemas.TopFood]
+)
+def top_foods(
+    user_id: int,
+    db: Session = Depends(get_db)
+):
+    return crud.get_top_foods(db, user_id)
