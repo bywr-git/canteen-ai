@@ -86,3 +86,15 @@ class TopFood(BaseModel):
     food_name: str
     category: str
     times_purchased: int
+
+class CategorySpending(BaseModel):
+    category: str
+    total_spent: float
+
+class NutritionSummary(BaseModel):
+    user_id: int
+    total_calories: int
+    protein: float
+    carbs: float
+    fat: float
+    sugar: float

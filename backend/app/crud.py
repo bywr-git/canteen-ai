@@ -238,3 +238,79 @@ def get_top_foods(db: Session, user_id: int):
         }
         for row in results
     ]
+
+def get_category_spending(db: Session, user_id: int):
+
+    results = (
+        db.query(
+            models.FoodItem.category,
+            func.sum(models.Purchase.amount).label("total_spent")
+        )
+        .join(
+            models.Purchase,
+            models.FoodItem.item_id == models.Purchase.item_id
+        )
+        .filter(
+            models.Purchase.user_id == user_id
+        )
+        .group_by(
+            models.FoodItem.category
+        )
+        .order_by(
+            func.sum(models.Purchase.amount).desc()
+        )
+        .all()
+    )
+
+    return [
+        {
+            "category": row.category,
+            "total_spent": float(row.total_spent)
+        }
+        for row in results
+    ]
+
+def get_nutrition_summary(db: Session, user_id: int):
+
+    purchases = (
+        db.query(models.Purchase)
+        .filter(models.Purchase.user_id == user_id)
+        .all()
+    )
+
+    if not purchases:
+        return {
+            "message": "No purchases found."
+        }
+
+    total_calories = 0
+    total_protein = 0
+    total_carbs = 0
+    total_fat = 0
+    total_sugar = 0
+
+    for purchase in purchases:
+
+        food = (
+            db.query(models.FoodItem)
+            .filter(models.FoodItem.item_id == purchase.item_id)
+            .first()
+        )
+
+        if not food:
+            continue
+
+        total_calories += food.calories * purchase.quantity
+        total_protein += food.protein * purchase.quantity
+        total_carbs += food.carbs * purchase.quantity
+        total_fat += food.fat * purchase.quantity
+        total_sugar += food.sugar * purchase.quantity
+
+    return {
+        "user_id": user_id,
+        "total_calories": total_calories,
+        "protein": round(total_protein, 2),
+        "carbs": round(total_carbs, 2),
+        "fat": round(total_fat, 2),
+        "sugar": round(total_sugar, 2)
+    }
