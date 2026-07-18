@@ -1,4 +1,13 @@
-from sqlalchemy import Column, Integer, String, TIMESTAMP, text, Float
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    TIMESTAMP,
+    Float,
+    ForeignKey,
+    text
+)
+from sqlalchemy.orm import relationship
 from .database import Base
 
 class User(Base):
@@ -34,8 +43,15 @@ class Purchase(Base):
 
     purchase_id = Column(Integer, primary_key=True, index=True)
 
-    user_id = Column(Integer)
-    item_id = Column(Integer)
+    user_id = Column(
+    Integer,
+    ForeignKey("users.user_id")
+    )
+
+    item_id = Column(
+    Integer,
+    ForeignKey("food_items.item_id")
+    )
 
     quantity = Column(Integer)
 
@@ -50,5 +66,8 @@ class Budget(Base):
     __tablename__ = "budgets"
 
     budget_id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer)
+    user_id = Column(
+    Integer,
+    ForeignKey("users.user_id")
+    )
     monthly_limit = Column(Float)
