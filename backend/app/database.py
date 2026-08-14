@@ -1,7 +1,11 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-DATABASE_URL = "postgresql://postgres:Yashu2006@localhost:5432/canteen_ai"
+from .config import settings
+
+# Use DATABASE_URL from environment configuration
+# Database connection parameters are loaded from environment variables via config.py
+DATABASE_URL = settings.DATABASE_URL
 
 engine = create_engine(DATABASE_URL)
 
