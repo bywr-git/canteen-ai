@@ -25,7 +25,7 @@ export default function Food() {
   }
 
   return <main className="min-h-screen bg-gray-100 p-8">
-    <div className="flex justify-between mb-8"><h1 className="text-3xl font-bold">Food catalogue</h1><Link to="/dashboard">Dashboard</Link></div>
+    <div className="flex justify-between mb-8"><h1 className="text-3xl font-bold">Food catalogue</h1><div className="flex gap-3"><Link to="/food-scanner">AI scanner</Link><Link to="/dashboard">Dashboard</Link></div></div>
     <div className="flex gap-3 mb-6">
       <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search food" className="p-2 border bg-white" />
       <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Category" className="p-2 border bg-white" />

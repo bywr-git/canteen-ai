@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useAuth } from '../hooks/AuthProvider'
+import { Link } from 'react-router-dom'
 
 export default function Login() {
   const { login } = useAuth()
@@ -25,6 +26,7 @@ export default function Login() {
         <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Password" className="w-full p-2 border" />
         {error && <div className="text-red-600">{error}</div>}
         <button className="px-4 py-2 bg-blue-600 text-white rounded">Login</button>
+        <p className="text-sm text-gray-600">Don't have an account? <Link to="/register" className="text-blue-600 underline">Register</Link></p>
       </form>
     </div>
   )

@@ -251,6 +251,37 @@ class UserRegister(BaseModel):
             raise ValueError('Password must be at least 8 characters long')
         return v
 
+    @field_validator('name')
+    @classmethod
+    def register_name_not_empty(cls, v):
+        if not v.strip():
+            raise ValueError('Name cannot be empty or whitespace only')
+        return v.strip()
+
+    @field_validator('email')
+    @classmethod
+    def register_email_valid(cls, v):
+        normalized = v.strip().lower()
+        if not EMAIL_PATTERN.match(normalized):
+            raise ValueError('Invalid email format')
+        return normalized
+
+    @field_validator('department')
+    @classmethod
+    def register_department_valid(cls, v):
+        if v is None:
+            return v
+        if not v.strip():
+            raise ValueError('Department cannot be empty or whitespace only')
+        return v.strip()
+
+    @field_validator('year')
+    @classmethod
+    def register_year_valid(cls, v):
+        if v is not None and not 1 <= v <= 5:
+            raise ValueError('Year must be between 1 and 5')
+        return v
+
 
 class UserLogin(BaseModel):
     email: str
@@ -265,3 +296,38 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     user_id: int | None = None
     role: str | None = None
+
+
+class FoodScanResponse(BaseModel):
+    scan_id: int
+    user_id: int
+    detected_food_name: str | None = None
+    confidence: float | None = None
+    estimated_calories: float | None = None
+    estimated_protein: float | None = None
+    estimated_carbohydrates: float | None = None
+    estimated_fat: float | None = None
+    estimated_fiber: float | None = None
+    portion_description: str | None = None
+    analysis_notes: str | None = None
+    status: str
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+    class Config:
+        from_attributes = True
+
+
+class FoodScanConfirm(BaseModel):
+    detected_food_name: str | None = Field(default=None, max_length=255)
+    confidence: float | None = Field(default=None, ge=0, le=1)
+    estimated_calories: float | None = Field(default=None, ge=0)
+    estimated_protein: float | None = Field(default=None, ge=0)
+    estimated_carbohydrates: float | None = Field(default=None, ge=0)
+    estimated_fat: float | None = Field(default=None, ge=0)
+    estimated_fiber: float | None = Field(default=None, ge=0)
+    portion_description: str | None = Field(default=None, max_length=500)
+    analysis_notes: str | None = Field(default=None, max_length=2000)
+    add_to_purchases: bool = False
+    food_item_id: int | None = Field(default=None, gt=0)
+    quantity: int = Field(default=1, gt=0, le=1000)

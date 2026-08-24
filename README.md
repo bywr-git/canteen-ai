@@ -128,6 +128,18 @@ docs/
 
 Protected endpoints require `Authorization: Bearer <access_token>`.
 
+## AI Food Scanner
+
+Authenticated students can upload a JPEG, PNG, GIF, or WebP food photo at
+`/food-scanner`. The backend sends the image to Gemini and returns structured
+food and nutrition estimates. Images are validated server-side and are not
+stored as public files. The user reviews and edits the result before saving
+the scan; adding a purchase is a separate optional action using an explicitly
+selected catalogue item. Estimates are uncertain and are not medical advice.
+
+Set `GEMINI_API_KEY` in the repository-root `.env` for local scanner use.
+The key is read only by the backend and is never placed in frontend code.
+
 ---
 
 # 🚀 Getting Started

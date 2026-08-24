@@ -1,10 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from datetime import timedelta
+import logging
 
 from .. import schemas, crud
 from ..database import SessionLocal
 from ..security import hash_password, verify_password, create_access_token, get_db
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/auth",
@@ -33,7 +37,11 @@ def register(user: schemas.UserRegister, db: Session = Depends(get_db)):
     u.password_hash = password_hash
     u.role = 'student'
 
-    db_user = crud.create_user(db, u)
+    try:
+        db_user = crud.create_user(db, u)
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Registration failed") from exc
 
     return {
         "user": {
@@ -50,12 +58,16 @@ def register(user: schemas.UserRegister, db: Session = Depends(get_db)):
 
 @router.post('/login')
 def login(form_data: schemas.UserLogin, db: Session = Depends(get_db)):
-    # Use constant-time responses: do not reveal existence
-    user = crud.get_user_by_email(db, form_data.email)
+    # Use constant-time responses: do not reveal existence to the client.
+    normalized_email = form_data.email.strip().lower()
+    user = crud.get_user_by_email(db, normalized_email)
+    logger.info("AUTH_LOGIN_EMAIL=%s AUTH_USER_FOUND=%s AUTH_HASH_PRESENT=%s", normalized_email, bool(user), bool(user and user.password_hash))
     if not user or not user.password_hash:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
-    if not verify_password(form_data.password, user.password_hash):
+    password_valid = verify_password(form_data.password, user.password_hash)
+    logger.info("AUTH_PASSWORD_VERIFIED=%s AUTH_STATUS=200_OR_401", password_valid)
+    if not password_valid:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     # update last_login

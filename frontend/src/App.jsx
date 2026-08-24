@@ -5,6 +5,8 @@ import Register from './pages/Register'
 import Food from './pages/Food'
 import Purchases from './pages/Purchases'
 import Budget from './pages/Budget'
+import FoodScanner from './pages/FoodScanner'
+import NutritionHistory from './pages/NutritionHistory'
 import { AuthProvider, RequireAuth } from './hooks/AuthProvider'
 
 function App() {
@@ -19,6 +21,8 @@ function App() {
           <Route path="/food" element={<RequireAuth><Food /></RequireAuth>} />
           <Route path="/purchases" element={<RequireAuth><Purchases /></RequireAuth>} />
           <Route path="/budget" element={<RequireAuth><Budget /></RequireAuth>} />
+          <Route path="/food-scanner" element={<RequireAuth><FoodScanner /></RequireAuth>} />
+          <Route path="/nutrition-history" element={<RequireAuth><NutritionHistory /></RequireAuth>} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

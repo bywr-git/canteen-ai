@@ -481,3 +481,37 @@ def get_nutrition_summary(db: Session, user_id: int):
         "fat": round(total_fat, 2),
         "sugar": round(total_sugar, 2)
     }
+
+
+def create_food_scan(db: Session, data: dict):
+    scan = models.FoodScan(**data)
+    db.add(scan)
+    db.commit()
+    db.refresh(scan)
+    return scan
+
+
+def get_food_scan(db: Session, scan_id: int, user_id: int):
+    return db.query(models.FoodScan).filter(
+        models.FoodScan.scan_id == scan_id,
+        models.FoodScan.user_id == user_id,
+    ).first()
+
+
+def get_food_scans(db: Session, user_id: int):
+    return db.query(models.FoodScan).filter(
+        models.FoodScan.user_id == user_id,
+    ).order_by(models.FoodScan.created_at.desc()).all()
+
+
+def update_food_scan(db: Session, scan: models.FoodScan, data: dict):
+    for key, value in data.items():
+        setattr(scan, key, value)
+    db.commit()
+    db.refresh(scan)
+    return scan
+
+
+def delete_food_scan(db: Session, scan: models.FoodScan):
+    db.delete(scan)
+    db.commit()

@@ -9,6 +9,8 @@ from sqlalchemy import (
     text,
     Date
 )
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.types import JSON
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -96,5 +98,26 @@ class Budget(Base):
     period = Column(String(20), nullable=False, server_default=text("'monthly'"))
     start_date = Column(Date, nullable=True)
     end_date = Column(Date, nullable=True)
+    created_at = Column(TIMESTAMP, server_default=text("CURRENT_TIMESTAMP"))
+    updated_at = Column(TIMESTAMP, server_default=text("CURRENT_TIMESTAMP"), onupdate=text("CURRENT_TIMESTAMP"))
+
+
+class FoodScan(Base):
+    __tablename__ = "food_scans"
+
+    scan_id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False, index=True)
+    image_reference = Column(String(500), nullable=True)
+    detected_food_name = Column(String(255), nullable=True)
+    confidence = Column(Float, nullable=True)
+    estimated_calories = Column(Float, nullable=True)
+    estimated_protein = Column(Float, nullable=True)
+    estimated_carbohydrates = Column(Float, nullable=True)
+    estimated_fat = Column(Float, nullable=True)
+    estimated_fiber = Column(Float, nullable=True)
+    portion_description = Column(String(500), nullable=True)
+    analysis_notes = Column(String(2000), nullable=True)
+    raw_analysis = Column(JSON().with_variant(JSONB, "postgresql"), nullable=True)
+    status = Column(String(30), nullable=False, server_default=text("'pending_review'"))
     created_at = Column(TIMESTAMP, server_default=text("CURRENT_TIMESTAMP"))
     updated_at = Column(TIMESTAMP, server_default=text("CURRENT_TIMESTAMP"), onupdate=text("CURRENT_TIMESTAMP"))

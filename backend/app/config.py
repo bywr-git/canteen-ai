@@ -8,6 +8,15 @@ and proper error handling. Never hardcode secrets.
 import os
 import sys
 from functools import lru_cache
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+
+# Load the repository-root environment file without overriding explicit
+# process environment variables. Secrets remain server-side only.
+ROOT_ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+load_dotenv(ROOT_ENV_FILE)
 
 
 class Settings:
@@ -34,6 +43,10 @@ class Settings:
         "ACCESS_TOKEN_EXPIRE_MINUTES",
         "60"
     ))
+
+    # AI Configuration
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
 
     # API Configuration
     DEBUG: bool = os.getenv("DEBUG", "False").lower() == "true"

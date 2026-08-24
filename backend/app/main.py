@@ -11,6 +11,7 @@ from .routes import analytics
 from .routes import budgets
 from .routes import dashboard
 from .routes import auth
+from .routes import food_scans
 from .config import settings
 
 # Configure logging
@@ -72,6 +73,7 @@ app.include_router(analytics.router)
 app.include_router(budgets.router)
 app.include_router(dashboard.router)
 app.include_router(auth.router)
+app.include_router(food_scans.router)
 
 @app.get("/")
 def home():

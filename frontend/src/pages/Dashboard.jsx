@@ -8,15 +8,22 @@ function Dashboard() {
     const { user, logout } = useAuth()
     const [dashboard, setDashboard] = useState(null);
     const [error, setError] = useState(null)
+    const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        api.get("/dashboard")
-            .then((response) => {
+        const loadDashboard = async () => {
+            setLoading(true)
+            setError(null)
+            try {
+                const response = await api.get("/dashboard")
                 setDashboard(response.data);
-            })
-            .catch((error) => {
+            } catch {
                 setError('Unable to load your dashboard.')
-            });
+            } finally {
+                setLoading(false)
+            }
+        }
+        loadDashboard()
 
     }, []);
 
@@ -37,7 +44,7 @@ function Dashboard() {
             </h1>
 
             {error && <p className="bg-red-100 text-red-700 p-4 mb-6">{error}</p>}
-            {!dashboard && !error && <p className="bg-white p-6">Loading dashboard...</p>}
+            {loading && <p className="bg-white p-6">Loading dashboard...</p>}
 
             {dashboard && <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 

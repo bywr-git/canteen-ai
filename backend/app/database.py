@@ -47,6 +47,13 @@ else:
     # Additive, idempotent updates for existing PostgreSQL development data.
     # No tables are dropped or recreated.
     table_columns = {
+        "users": {
+            "password_hash": "VARCHAR(512)",
+            "role": "VARCHAR(20) NOT NULL DEFAULT 'student'",
+            "is_active": "BOOLEAN NOT NULL DEFAULT TRUE",
+            "updated_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+            "last_login": "TIMESTAMP",
+        },
         "food_items": {
             "description": "VARCHAR(1000)", "fiber": "DOUBLE PRECISION",
             "is_available": "BOOLEAN NOT NULL DEFAULT TRUE",
@@ -64,7 +71,10 @@ else:
             "updated_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
         },
     }
+    from . import models  # noqa: E402
+
     inspector = inspect(engine)
+    models.FoodScan.__table__.create(bind=engine, checkfirst=True)
     with engine.begin() as connection:
         for table_name, columns in table_columns.items():
             if not inspector.has_table(table_name):

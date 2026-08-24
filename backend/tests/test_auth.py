@@ -52,6 +52,50 @@ def test_register_and_login():
     me = r5.json()
     assert me['email'] == email
 
+    # Clearing a client token and logging in again must keep the account usable.
+    r6 = client.post('/auth/login', json=login)
+    assert r6.status_code == 200
+    assert r6.json()['user']['user_id'] == me['user_id']
+
+    assert 'password_hash' not in data['user']
+
+
+def test_registration_validation_and_login_flow():
+    email = unique_email()
+    payload = {
+        'name': 'Registration User',
+        'email': email,
+        'password': 'ValidPass123!',
+        'department': 'CS',
+        'year': 3,
+    }
+
+    registered = client.post('/auth/register', json=payload)
+    assert registered.status_code == 201
+    registered_user = registered.json()['user']
+    assert registered_user['role'] == 'student'
+    assert 'password_hash' not in registered_user
+
+    logged_in = client.post('/auth/login', json={
+        'email': email,
+        'password': payload['password'],
+    })
+    assert logged_in.status_code == 200
+    token = logged_in.json()['access_token']
+    me = client.get('/users/me', headers={'Authorization': f'Bearer {token}'})
+    assert me.status_code == 200
+    assert me.json()['email'] == email
+
+    duplicate = client.post('/auth/register', json=payload)
+    assert duplicate.status_code in (400, 409)
+    assert 'password_hash' not in duplicate.text
+
+    invalid_email = {**payload, 'email': 'not-an-email'}
+    assert client.post('/auth/register', json=invalid_email).status_code == 422
+
+    short_password = {**payload, 'email': unique_email(), 'password': 'short'}
+    assert client.post('/auth/register', json=short_password).status_code == 422
+
 
 def test_password_is_hashed_and_invalid_credentials_are_rejected():
     email = unique_email()
