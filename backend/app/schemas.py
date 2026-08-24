@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field, field_validator
 import re
@@ -55,14 +55,17 @@ class UserResponse(BaseModel):
 
 class FoodItemBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
+    description: str | None = Field(default=None, max_length=1000)
     category: str = Field(..., min_length=1, max_length=50)
-    price: float = Field(..., gt=0)
+    price: float = Field(..., ge=0)
 
-    calories: int = Field(..., ge=0)
-    protein: float = Field(..., ge=0)
-    carbs: float = Field(..., ge=0)
-    fat: float = Field(..., ge=0)
-    sugar: float = Field(..., ge=0)
+    calories: int | None = Field(default=None, ge=0)
+    protein: float | None = Field(default=None, ge=0)
+    carbs: float | None = Field(default=None, ge=0)
+    fat: float | None = Field(default=None, ge=0)
+    fiber: float | None = Field(default=None, ge=0)
+    sugar: float | None = Field(default=None, ge=0)
+    is_available: bool = True
 
     @field_validator('name')
     @classmethod
@@ -81,8 +84,8 @@ class FoodItemBase(BaseModel):
     @field_validator('price')
     @classmethod
     def price_positive(cls, v):
-        if v <= 0:
-            raise ValueError('Price must be greater than 0')
+        if v < 0:
+            raise ValueError('Price cannot be negative')
         return v
 
 
@@ -92,16 +95,19 @@ class FoodItemCreate(FoodItemBase):
 
 class FoodItem(FoodItemBase):
     item_id: int
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
     class Config:
         from_attributes = True
 
 
 class PurchaseCreate(BaseModel):
-    user_id: int = Field(..., gt=0)
+    user_id: int | None = Field(default=None, gt=0)
     item_id: int = Field(..., gt=0)
     quantity: int = Field(..., gt=0)
-    amount: float = Field(..., gt=0)
+    amount: float | None = Field(default=None, ge=0)
+    notes: str | None = Field(default=None, max_length=500)
 
     @field_validator('user_id')
     @classmethod
@@ -129,23 +135,31 @@ class PurchaseCreate(BaseModel):
     @field_validator('amount')
     @classmethod
     def amount_positive(cls, v):
-        if v <= 0:
-            raise ValueError('Amount must be greater than 0')
-        if v > 1000000:
+        if v is not None and v < 0:
+            raise ValueError('Amount cannot be negative')
+        if v is not None and v > 1000000:
             raise ValueError('Amount cannot exceed 1,000,000')
         return v
 
 
 class Purchase(PurchaseCreate):
     purchase_id: int
+    user_id: int
+    unit_price: float | None = None
+    total_price: float | None = None
+    purchased_at: datetime | None = None
+    purchase_time: datetime | None = None
 
     class Config:
         from_attributes = True
 
 
 class BudgetBase(BaseModel):
-    user_id: int = Field(..., gt=0)
+    user_id: int | None = Field(default=None, gt=0)
     monthly_limit: float = Field(..., gt=0)
+    period: str = Field(default='monthly', pattern='^monthly$')
+    start_date: date | None = None
+    end_date: date | None = None
 
     @field_validator('user_id')
     @classmethod
@@ -170,6 +184,9 @@ class BudgetCreate(BudgetBase):
 
 class Budget(BudgetBase):
     budget_id: int
+    user_id: int
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
     class Config:
         from_attributes = True

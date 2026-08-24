@@ -6,7 +6,8 @@ from sqlalchemy import (
     Boolean,
     Float,
     ForeignKey,
-    text
+    text,
+    Date
 )
 from sqlalchemy.orm import relationship
 from .database import Base
@@ -39,15 +40,20 @@ class FoodItem(Base):
     __tablename__ = "food_items"
 
     item_id = Column(Integer, primary_key=True, index=True)
-    name = Column(String)
-    category = Column(String)
-    price = Column(Float)
+    name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    category = Column(String, nullable=False)
+    price = Column(Float, nullable=False)
 
-    calories = Column(Integer)
-    protein = Column(Float)
-    carbs = Column(Float)
-    fat = Column(Float)
-    sugar = Column(Float)
+    calories = Column(Integer, nullable=True)
+    protein = Column(Float, nullable=True)
+    carbs = Column(Float, nullable=True)
+    fat = Column(Float, nullable=True)
+    fiber = Column(Float, nullable=True)
+    sugar = Column(Float, nullable=True)
+    is_available = Column(Boolean, nullable=False, server_default=text('TRUE'))
+    created_at = Column(TIMESTAMP, server_default=text("CURRENT_TIMESTAMP"))
+    updated_at = Column(TIMESTAMP, server_default=text("CURRENT_TIMESTAMP"), onupdate=text("CURRENT_TIMESTAMP"))
 
 class Purchase(Base):
     __tablename__ = "purchases"
@@ -64,14 +70,19 @@ class Purchase(Base):
     ForeignKey("food_items.item_id")
     )
 
-    quantity = Column(Integer)
-
-    amount = Column(Float)
+    quantity = Column(Integer, nullable=False)
+    unit_price = Column(Float, nullable=True)
+    total_price = Column(Float, nullable=True)
+    # Legacy amount is retained for compatibility with existing records/API clients.
+    amount = Column(Float, nullable=True)
+    notes = Column(String, nullable=True)
 
     purchase_time = Column(
         TIMESTAMP,
         server_default=text("CURRENT_TIMESTAMP")
     )
+
+    purchased_at = Column(TIMESTAMP, server_default=text("CURRENT_TIMESTAMP"))
 
 class Budget(Base):
     __tablename__ = "budgets"
@@ -81,4 +92,9 @@ class Budget(Base):
     Integer,
     ForeignKey("users.user_id")
     )
-    monthly_limit = Column(Float)
+    monthly_limit = Column(Float, nullable=False)
+    period = Column(String(20), nullable=False, server_default=text("'monthly'"))
+    start_date = Column(Date, nullable=True)
+    end_date = Column(Date, nullable=True)
+    created_at = Column(TIMESTAMP, server_default=text("CURRENT_TIMESTAMP"))
+    updated_at = Column(TIMESTAMP, server_default=text("CURRENT_TIMESTAMP"), onupdate=text("CURRENT_TIMESTAMP"))

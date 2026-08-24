@@ -29,6 +29,21 @@ def monthly_spending(
         return crud.get_monthly_spending(db)
     return [s for s in crud.get_monthly_spending(db) if s['user_id'] == current_user.user_id]
 
+
+@router.get('/summary')
+def summary(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    return crud.get_analytics_summary(db, current_user.user_id)
+
+
+@router.get('/spending')
+def spending(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    return crud.get_spending_trend(db, current_user.user_id)
+
+
+@router.get('/categories')
+def categories(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    return crud.get_category_spending(db, current_user.user_id)
+
 @router.get(
     "/budget-summary/{user_id}",
     response_model=schemas.BudgetSummaryResponse

@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from datetime import date, datetime, timedelta
 
 from . import models, schemas
 from .models import User
@@ -51,8 +52,19 @@ def set_user_password(db: Session, user: User, password_hash: str):
     return user
 
 
-def get_food_items(db: Session):
-    return db.query(models.FoodItem).all()
+def get_food_items(db: Session, search: str | None = None, category: str | None = None, available_only: bool = False):
+    query = db.query(models.FoodItem)
+    if search:
+        query = query.filter(models.FoodItem.name.ilike(f"%{search}%"))
+    if category:
+        query = query.filter(models.FoodItem.category == category)
+    if available_only:
+        query = query.filter(models.FoodItem.is_available.is_(True))
+    return query.order_by(models.FoodItem.name).all()
+
+
+def get_food_item(db: Session, item_id: int):
+    return db.query(models.FoodItem).filter(models.FoodItem.item_id == item_id).first()
 
 
 def create_food_item(
@@ -67,12 +79,39 @@ def create_food_item(
 
     return db_food
 
+
+def update_food_item(db: Session, item_id: int, data: dict):
+    food = get_food_item(db, item_id)
+    if not food:
+        return None
+    for key, value in data.items():
+        setattr(food, key, value)
+    db.commit()
+    db.refresh(food)
+    return food
+
+
+def deactivate_food_item(db: Session, item_id: int):
+    return update_food_item(db, item_id, {'is_available': False})
+
 def get_purchases(db: Session):
     return db.query(models.Purchase).all()
 
 
 def get_purchases_for_user(db: Session, user_id: int):
     return db.query(models.Purchase).filter(models.Purchase.user_id == user_id).all()
+
+
+def get_purchase(db: Session, purchase_id: int):
+    return db.query(models.Purchase).filter(models.Purchase.purchase_id == purchase_id).first()
+
+
+def get_purchases_for_user_filtered(db: Session, user_id: int, category: str | None = None):
+    query = db.query(models.Purchase).join(models.FoodItem, models.FoodItem.item_id == models.Purchase.item_id)
+    query = query.filter(models.Purchase.user_id == user_id)
+    if category:
+        query = query.filter(models.FoodItem.category == category)
+    return query.order_by(models.Purchase.purchased_at.desc()).all()
 
 
 def create_purchase(
@@ -97,6 +136,19 @@ def create_purchase_from_dict(db: Session, data: dict):
     db.refresh(db_purchase)
     return db_purchase
 
+
+def update_purchase(db: Session, purchase: models.Purchase, data: dict):
+    for key, value in data.items():
+        setattr(purchase, key, value)
+    db.commit()
+    db.refresh(purchase)
+    return purchase
+
+
+def delete_purchase(db: Session, purchase: models.Purchase):
+    db.delete(purchase)
+    db.commit()
+
 def get_monthly_spending(db: Session):
 
     results = (
@@ -120,6 +172,22 @@ def get_budgets(db: Session):
     return db.query(models.Budget).all()
 
 
+def get_budget(db: Session, budget_id: int):
+    return db.query(models.Budget).filter(models.Budget.budget_id == budget_id).first()
+
+
+def get_current_budget(db: Session, user_id: int):
+    today = date.today()
+    return (
+        db.query(models.Budget)
+        .filter(models.Budget.user_id == user_id)
+        .filter((models.Budget.start_date.is_(None)) | (models.Budget.start_date <= today))
+        .filter((models.Budget.end_date.is_(None)) | (models.Budget.end_date >= today))
+        .order_by(models.Budget.created_at.desc())
+        .first()
+    )
+
+
 def create_budget(
     db: Session,
     budget: schemas.BudgetCreate
@@ -133,6 +201,66 @@ def create_budget(
     db.refresh(db_budget)
 
     return db_budget
+
+
+def update_budget(db: Session, budget: models.Budget, data: dict):
+    for key, value in data.items():
+        setattr(budget, key, value)
+    db.commit()
+    db.refresh(budget)
+    return budget
+
+
+def get_budget_summary_for_period(db: Session, budget: models.Budget):
+    start = budget.start_date or date.today().replace(day=1)
+    end = budget.end_date or date.today()
+    spent = db.query(func.coalesce(func.sum(models.Purchase.total_price), func.sum(models.Purchase.amount), 0)).filter(
+        models.Purchase.user_id == budget.user_id,
+        func.date(func.coalesce(models.Purchase.purchased_at, models.Purchase.purchase_time)) >= start,
+        func.date(func.coalesce(models.Purchase.purchased_at, models.Purchase.purchase_time)) <= end,
+    ).scalar() or 0
+    amount = float(budget.monthly_limit or 0)
+    spent = float(spent)
+    remaining = amount - spent
+    return {
+        'budget_id': budget.budget_id,
+        'user_id': budget.user_id,
+        'amount': amount,
+        'monthly_budget': amount,
+        'spent': spent,
+        'total_spent': spent,
+        'remaining': remaining,
+        'percentage_used': (spent / amount * 100) if amount else 0,
+        'status': 'Over Budget' if remaining < 0 else ('Budget Reached' if remaining == 0 else 'Within Budget'),
+    }
+
+
+def get_analytics_summary(db: Session, user_id: int):
+    today = date.today()
+    week_start = today - timedelta(days=today.weekday())
+    month_start = today.replace(day=1)
+    purchases = db.query(models.Purchase).filter(models.Purchase.user_id == user_id).all()
+    values = [(p, float(p.total_price if p.total_price is not None else p.amount or 0)) for p in purchases]
+    def in_range(p, start):
+        timestamp = p.purchased_at or p.purchase_time
+        return timestamp is None or timestamp.date() >= start
+    return {
+        'user_id': user_id,
+        'total_spending': sum(v for _, v in values),
+        'spending_today': sum(v for p, v in values if in_range(p, today)),
+        'spending_this_week': sum(v for p, v in values if in_range(p, week_start)),
+        'spending_this_month': sum(v for p, v in values if in_range(p, month_start)),
+        'number_of_purchases': len(values),
+        'average_purchase_value': sum(v for _, v in values) / len(values) if values else 0,
+    }
+
+
+def get_spending_trend(db: Session, user_id: int):
+    rows = db.query(
+        func.date(func.coalesce(models.Purchase.purchased_at, models.Purchase.purchase_time)).label('day'),
+        func.sum(func.coalesce(models.Purchase.total_price, models.Purchase.amount)).label('total')
+    ).filter(models.Purchase.user_id == user_id).group_by('day').order_by('day').all()
+    return [{'date': str(row.day), 'amount': float(row.total or 0)} for row in rows]
 
 def get_budget_summary(db: Session, user_id: int):
 

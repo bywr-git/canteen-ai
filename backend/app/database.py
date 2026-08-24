@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.pool import StaticPool
 
@@ -43,3 +43,35 @@ Base = declarative_base()
 if TESTING:
     from . import models  # noqa: E402
     Base.metadata.create_all(bind=engine)
+else:
+    # Additive, idempotent updates for existing PostgreSQL development data.
+    # No tables are dropped or recreated.
+    table_columns = {
+        "food_items": {
+            "description": "VARCHAR(1000)", "fiber": "DOUBLE PRECISION",
+            "is_available": "BOOLEAN NOT NULL DEFAULT TRUE",
+            "created_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+            "updated_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        },
+        "purchases": {
+            "unit_price": "DOUBLE PRECISION", "total_price": "DOUBLE PRECISION",
+            "notes": "VARCHAR(500)", "purchased_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        },
+        "budgets": {
+            "period": "VARCHAR(20) NOT NULL DEFAULT 'monthly'",
+            "start_date": "DATE", "end_date": "DATE",
+            "created_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+            "updated_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        },
+    }
+    inspector = inspect(engine)
+    with engine.begin() as connection:
+        for table_name, columns in table_columns.items():
+            if not inspector.has_table(table_name):
+                continue
+            existing = {column["name"] for column in inspector.get_columns(table_name)}
+            for column_name, column_definition in columns.items():
+                if column_name not in existing:
+                    connection.execute(text(
+                        f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_definition}"
+                    ))

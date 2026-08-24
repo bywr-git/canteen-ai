@@ -35,3 +35,16 @@ def get_dashboard(
         "category_spending": crud.get_category_spending(db, user_id),
         "nutrition": crud.get_nutrition_summary(db, user_id)
     }
+
+
+@router.get('')
+def get_current_dashboard(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    budget = crud.get_current_budget(db, current_user.user_id)
+    purchases = crud.get_purchases_for_user_filtered(db, current_user.user_id)[:10]
+    return {
+        'budget': crud.get_budget_summary_for_period(db, budget) if budget else None,
+        'recent_purchases': purchases,
+        'spending_by_category': crud.get_category_spending(db, current_user.user_id),
+        'spending_trend': crud.get_spending_trend(db, current_user.user_id),
+        'analytics': crud.get_analytics_summary(db, current_user.user_id),
+    }
