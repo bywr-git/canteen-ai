@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, Field, field_validator
 import re
 
@@ -11,6 +13,7 @@ class UserCreate(BaseModel):
     email: str = Field(..., min_length=5, max_length=255)
     department: str = Field(..., min_length=1, max_length=50)
     year: int = Field(..., ge=1, le=5)
+    # password intentionally omitted from generic create; use Register schema where needed
 
     @field_validator('name')
     @classmethod
@@ -34,8 +37,17 @@ class UserCreate(BaseModel):
         return v.strip()
 
 
-class UserResponse(UserCreate):
+class UserResponse(BaseModel):
     user_id: int
+    name: str
+    email: str
+    department: str | None = None
+    year: int | None = None
+    role: str = Field(..., pattern="^(student|admin)$")
+    is_active: bool = Field(...)
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    last_login: datetime | None = None
 
     class Config:
         from_attributes = True
@@ -202,3 +214,37 @@ class NutritionSummary(BaseModel):
     carbs: float
     fat: float
     sugar: float
+
+
+# ------------------
+# Authentication schemas
+# ------------------
+
+class UserRegister(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    email: str = Field(..., min_length=5, max_length=255)
+    password: str = Field(..., min_length=8)
+    department: str | None = None
+    year: int | None = None
+
+    @field_validator('password')
+    @classmethod
+    def password_strength(cls, v):
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        return v
+
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class TokenData(BaseModel):
+    user_id: int | None = None
+    role: str | None = None

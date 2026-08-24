@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
 from app import crud, schemas
 from typing import List
+from app.security import get_current_user
 
 router = APIRouter(
     prefix="/analytics",
@@ -20,9 +21,13 @@ def get_db():
 
 @router.get("/monthly-spending")
 def monthly_spending(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
 ):
-    return crud.get_monthly_spending(db)
+    # Admin: full overview; Students: only their own aggregated spending
+    if current_user.role == 'admin':
+        return crud.get_monthly_spending(db)
+    return [s for s in crud.get_monthly_spending(db) if s['user_id'] == current_user.user_id]
 
 @router.get(
     "/budget-summary/{user_id}",
@@ -30,8 +35,11 @@ def monthly_spending(
 )
 def budget_summary(
     user_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
 ):
+    if current_user.role != 'admin' and user_id != current_user.user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Access denied')
     return crud.get_budget_summary(db, user_id)
 
 @router.get(
@@ -40,8 +48,11 @@ def budget_summary(
 )
 def health_score(
     user_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
 ):
+    if current_user.role != 'admin' and user_id != current_user.user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Access denied')
     return crud.get_health_score(db, user_id)
 
 
@@ -51,8 +62,11 @@ def health_score(
 )
 def top_foods(
     user_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
 ):
+    if current_user.role != 'admin' and user_id != current_user.user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Access denied')
     return crud.get_top_foods(db, user_id)
 
 @router.get(
@@ -61,8 +75,11 @@ def top_foods(
 )
 def category_spending(
     user_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
 ):
+    if current_user.role != 'admin' and user_id != current_user.user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Access denied')
     return crud.get_category_spending(db, user_id)
 
 @router.get(
@@ -71,6 +88,9 @@ def category_spending(
 )
 def nutrition_summary(
     user_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
 ):
+    if current_user.role != 'admin' and user_id != current_user.user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Access denied')
     return crud.get_nutrition_summary(db, user_id)

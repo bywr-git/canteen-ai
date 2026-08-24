@@ -3,6 +3,7 @@ from sqlalchemy import (
     Integer,
     String,
     TIMESTAMP,
+    Boolean,
     Float,
     ForeignKey,
     text
@@ -12,17 +13,27 @@ from .database import Base
 
 class User(Base):
     __tablename__ = "users"
-
     user_id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100))
-    email = Column(String(100))
-    department = Column(String(50))
-    year = Column(Integer)
+    name = Column(String(100), nullable=False)
+    email = Column(String(100), unique=True, index=True, nullable=False)
+    password_hash = Column(String(512), nullable=True)
+    role = Column(String(20), nullable=False, server_default=text("'student'"))
+    department = Column(String(50), nullable=True)
+    year = Column(Integer, nullable=True)
+    is_active = Column(Boolean, nullable=False, server_default=text('TRUE'))
 
     created_at = Column(
         TIMESTAMP,
         server_default=text("CURRENT_TIMESTAMP")
     )
+
+    updated_at = Column(
+        TIMESTAMP,
+        server_default=text("CURRENT_TIMESTAMP"),
+        onupdate=text("CURRENT_TIMESTAMP")
+    )
+
+    last_login = Column(TIMESTAMP, nullable=True)
 
 class FoodItem(Base):
     __tablename__ = "food_items"

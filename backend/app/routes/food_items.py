@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app import crud, schemas
 from app.database import SessionLocal
+from app.security import require_admin
 
 router = APIRouter(
     prefix="/food-items",
@@ -27,6 +28,7 @@ def read_food_items(
 @router.post("/")
 def create_food_item(
     food: schemas.FoodItemCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _=Depends(require_admin)
 ):
     return crud.create_food_item(db, food)

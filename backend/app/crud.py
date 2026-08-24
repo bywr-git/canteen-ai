@@ -9,12 +9,23 @@ def get_users(db: Session):
     return db.query(User).all()
 
 
+def get_user_by_email(db: Session, email: str):
+    return db.query(User).filter(User.email == email).first()
+
+
+def get_user(db: Session, user_id: int):
+    return db.query(User).filter(User.user_id == user_id).first()
+
+
 def create_user(db: Session, user):
+    # Accept either a UserCreate-like or object with optional password_hash/role
     db_user = User(
-        name=user.name,
-        email=user.email,
-        department=user.department,
-        year=user.year
+        name=getattr(user, 'name', None),
+        email=getattr(user, 'email', None),
+        department=getattr(user, 'department', None),
+        year=getattr(user, 'year', None),
+        password_hash=getattr(user, 'password_hash', None),
+        role=getattr(user, 'role', 'student')
     )
 
     db.add(db_user)
@@ -22,6 +33,22 @@ def create_user(db: Session, user):
     db.refresh(db_user)
 
     return db_user
+
+
+def update_user_last_login(db: Session, user: User):
+    user.last_login = func.now()
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def set_user_password(db: Session, user: User, password_hash: str):
+    user.password_hash = password_hash
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
 
 
 def get_food_items(db: Session):
@@ -44,6 +71,10 @@ def get_purchases(db: Session):
     return db.query(models.Purchase).all()
 
 
+def get_purchases_for_user(db: Session, user_id: int):
+    return db.query(models.Purchase).filter(models.Purchase.user_id == user_id).all()
+
+
 def create_purchase(
     db: Session,
     purchase: schemas.PurchaseCreate
@@ -56,6 +87,14 @@ def create_purchase(
     db.commit()
     db.refresh(db_purchase)
 
+    return db_purchase
+
+
+def create_purchase_from_dict(db: Session, data: dict):
+    db_purchase = models.Purchase(**data)
+    db.add(db_purchase)
+    db.commit()
+    db.refresh(db_purchase)
     return db_purchase
 
 def get_monthly_spending(db: Session):

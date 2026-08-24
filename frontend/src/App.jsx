@@ -1,35 +1,21 @@
-import { useEffect, useState } from "react";
-import api from "./services/api";
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import Dashboard from "./pages/Dashboard";
+import Login from './pages/Login'
+import Register from './pages/Register'
+import { AuthProvider, RequireAuth } from './hooks/AuthProvider'
 
 function App() {
-
-  const [dashboard, setDashboard] = useState(null);
-
-  useEffect(() => {
-
-    api.get("/dashboard/1")
-      .then((response) => {
-        setDashboard(response.data);
-      })
-      .catch((error) => {
-        console.error(error);
-      });
-
-  }, []);
-
   return (
-    <div style={{ padding: "40px" }}>
-      <h1>Canteen Budget Tracker</h1>
-
-      {dashboard ? (
-        <pre>
-          {JSON.stringify(dashboard, null, 2)}
-        </pre>
-      ) : (
-        <p>Loading...</p>
-      )}
-    </div>
-  );
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
+  )
 }
 
 export default App;

@@ -10,6 +10,7 @@ from .routes import purchases
 from .routes import analytics
 from .routes import budgets
 from .routes import dashboard
+from .routes import auth
 from .config import settings
 
 # Configure logging
@@ -70,6 +71,7 @@ app.include_router(purchases.router)
 app.include_router(analytics.router)
 app.include_router(budgets.router)
 app.include_router(dashboard.router)
+app.include_router(auth.router)
 
 @app.get("/")
 def home():

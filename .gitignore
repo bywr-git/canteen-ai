@@ -40,3 +40,8 @@ frontend/build/
 
 # Database backups
 *.sql.bak
+
+# Test databases
+*.db
+*.sqlite
+*.sqlite3
